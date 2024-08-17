@@ -30,8 +30,8 @@ type ColumnNames[T <: NonEmptyTuple] <: Tuple = T match
     case (name, ?) *: tail => name *: ColumnNames[tail]
     case _                 => EmptyTuple
 
-trait Encodable[-A, B <: (String & Singleton, NonEmptyTuple)]:
-    def encode(a: A): Tuple.Elem[B, 1]
+trait Mapping[-DOMAIN, ROW <: (String & Singleton, NonEmptyTuple)]:
+    def encode(a: DOMAIN): Tuple.Elem[ROW, 1]
 
 trait Table[NAME <: String & Singleton, COLUMNS <: NonEmptyTuple : Of[Column[?]]]:
     type Columns = COLUMNS
@@ -41,7 +41,7 @@ trait Table[NAME <: String & Singleton, COLUMNS <: NonEmptyTuple : Of[Column[?]]
     
     def primaryKey: List[Tuple.Union[ColumnNames[Columns]]]
     
-    def params[A](data: A)(using e: Encodable[A, Row]): List[Tuple.Union[Columns]] =
+    def params[A](data: A)(using e: Mapping[A, Row]): List[Tuple.Union[Columns]] =
         e.encode(data).toList
     
     def diff[A](
@@ -49,7 +49,7 @@ trait Table[NAME <: String & Singleton, COLUMNS <: NonEmptyTuple : Of[Column[?]]
       after:             A,
       includePrimaryKey: Boolean = false,
     )(
-      using Encodable[A, Row],
+      using Mapping[A, Row],
     ): List[Tuple.Union[Columns]] =
         val columnsBefore = params(before)
         val columnsAfter  = params(after)
@@ -69,7 +69,7 @@ object Users extends Table["users", (("id", Int), ("name", String))]:
 
 case class User(id: Int, name: String)
 
-given Encodable[User, Users.Row] = (user: User) => (
+given Mapping[User, Users.Row] = (user: User) => (
     "id"   -> user.id,
     "name" -> user.name,
 )
@@ -104,7 +104,7 @@ object Reactions extends Table["reactions", (("post_id", Int), ("user_id", Int))
 
 case class Reaction(id: Int, userId: Int)
 
-given Encodable[Reaction, Reactions.Row] = (reaction: Reaction) => (
+given Mapping[Reaction, Reactions.Row] = (reaction: Reaction) => (
     "id"      -> reaction.id,
     "user_id" -> reaction.userId,
 )
@@ -118,7 +118,7 @@ object Items extends Table["items", (("id", Int), ("name", String))]:
 
 case class Item(id: Int, name: String)
 
-given Encodable[Item, Items.Row] = (item: Item) => (
+given Mapping[Item, Items.Row] = (item: Item) => (
     "id"   -> item.id,
     "name" -> item.name,
 )
