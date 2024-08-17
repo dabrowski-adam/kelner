@@ -8,7 +8,6 @@
 - [Usage](#usage)
 - [Meta](#meta)
 
-
 ## About
 
 Kelner is a helper for generating DML query params from domain objects. 
@@ -35,13 +34,15 @@ type ColumnNames[T <: NonEmptyTuple] <: Tuple = T match
 trait Mapping[-DOMAIN, ROW <: (String & Singleton, NonEmptyTuple)]:
     def encode(a: DOMAIN): Tuple.Elem[ROW, 1]
 
-trait Table[NAME <: String & Singleton, COLUMNS <: NonEmptyTuple : Of[Column[?]]]:
+trait Table[NAME <: String & Singleton : ValueOf, COLUMNS <: NonEmptyTuple : Of[Column[?]]]:
     type Columns = COLUMNS
     type Row     = (NAME, COLUMNS)
     
     given CanEqual[Tuple.Union[Columns], Tuple.Union[Columns]] = CanEqual.derived
     
     def primaryKey: List[Tuple.Union[ColumnNames[Columns]]]
+
+    def name: NAME = valueOf[NAME]
     
     def params[A](data: A)(using e: Mapping[A, Row]): List[Tuple.Union[Columns]] =
         e.encode(data).toList
@@ -130,6 +131,53 @@ given Mapping[Item, Items.Row] = (item: Item) => (
 Items.params(user)
 ```
 
+# Use cases
+
+## Generate partial updates
+
+```scala mdoc
+ // Implementation making use of com.datastax.driver.core.BoundStatement is left as an exercise to the reader.
+type CassandraQuery = String
+
+trait Cassandra:
+    this: Table[?, ?] =>
+        
+        def update[A](before: A, after: A)(using Mapping[A, this.Row]): CassandraQuery =
+            val params    = this.diff(before, after, includePrimaryKey = true)
+            val columns   = params.map:
+                case (name, _value) => name
+            val values    = params.map:
+                case (_name, value: String) => s"'$value'"
+                case (_name, value: Int)    => value
+            
+            s"INSERT (${columns.mkString(", ")}) INTO ${this.name} VALUES (${values.mkString(", ")})"
+```
+
+```scala mdoc
+object Posts extends Table[
+    "posts",
+    (
+        ("id",         Int),
+        ("content",    String),
+        ("created_at", String),
+    )
+] with Cassandra:
+    override def primaryKey = List("id")
+
+case class Post(id: Int, content: String, createdAt: String)
+
+given Mapping[Post, Posts.Row] = (post: Post) => (
+  "id"         -> post.id,
+  "content"    -> post.content,
+  "created_at" -> post.createdAt,
+)
+
+val post = Post(id = 0, content = "Lorem ipsum...", createdAt = "timestamp")
+
+val updatedPost = post.copy(content = "Quidquid latine dictum sit, altum videtur.")
+
+val cassandraUpdateQuery = Posts.update(post, updatedPost)
+```
 
 ## Meta
 
