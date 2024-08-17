@@ -1,3 +1,4 @@
+#!/usr/bin/env -S scala-cli --power shebang
 # Kelner
 
 **Table of Contents**
@@ -134,9 +135,11 @@ Items.params(user)
 
 ## Meta
 
-This readme was generated from `readme.scala.md` using `scala-cli --power readme.scala.md`.
+This readme was generated from [readme.scala.md](readme.scala.md). 
 
-```scala raw
+First, make it executable (yes!) with `chmod +x readme.scala.md`, then just run it: `./readme.scala.md`. 😀
+
+```scala mdoc:invisible raw
 //> using jvm 22
 //> using scala 3.5.0-RC7
 //> using mainClass Main
@@ -149,7 +152,7 @@ This readme was generated from `readme.scala.md` using `scala-cli --power readme
 //> using dep org.scalameta::mdoc:2.5.4
 ```
 
-```scala raw
+```scala mdoc:invisible raw
 object Main:
     def main(args: Array[String]): Unit =
         val classpath = System.getProperty("java.class.path")
@@ -161,5 +164,15 @@ object Main:
         val settings  = mdoc.MainSettings().withArgs(args.toList ++ mdocArgs)
         val exitCode  = mdoc.Main.process(settings)
         
-        if (exitCode != 0) sys.exit(exitCode)
+        if (exitCode != 0) sys.exit(exitCode) else trimShebang("readme.md")
+
+
+    def trimShebang(filePath: String): Unit =
+        val source = scala.io.Source.fromFile(filePath)
+        val lines  = try source.getLines().toList finally source.close()
+        
+        val linesWithoutShebang = lines.dropWhile(_.startsWith("#!"))
+        
+        val writer = new java.io.PrintWriter(filePath)
+        try linesWithoutShebang.foreach(writer.println(_)) finally writer.close()
 ```

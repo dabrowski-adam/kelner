@@ -162,32 +162,8 @@ Items.params(user)
 
 ## Meta
 
-This readme was generated from `readme.scala.md` using `scala-cli --power readme.scala.md`.
+This readme was generated from [readme.scala.md](readme.scala.md). 
 
-```scala raw
-//> using jvm 22
-//> using scala 3.5.0-RC7
-//> using mainClass Main
+First, make it executable (yes!) with `chmod +x readme.scala.md`, then just run it: `./readme.scala.md`. 😀
 
-//> using options -deprecation -feature -language:strictEquality
-//> using options -Xmax-inlines:64 -Xkind-projector:underscores
-//> using options -Yexplicit-nulls -Ysafe-init-global
-//> using options -Wsafe-init -Wnonunit-statement -Wshadow:all
 
-//> using dep org.scalameta::mdoc:2.5.4
-```
-
-```scala raw
-object Main:
-    def main(args: Array[String]): Unit =
-        val classpath = System.getProperty("java.class.path")
-        val mdocArgs  = List(
-            "--classpath", classpath,
-            "--in", "readme.scala.md",
-            "--out", "readme.md",
-        )
-        val settings  = mdoc.MainSettings().withArgs(args.toList ++ mdocArgs)
-        val exitCode  = mdoc.Main.process(settings)
-        
-        if (exitCode != 0) sys.exit(exitCode)
-```
