@@ -135,7 +135,7 @@ Items.params(user)
 
 ## Meta
 
-This readme was generated from [readme.scala.md](readme.scala.md). 
+This readme was generated from [readme.scala.md](readme.scala.md?plain=1). 
 
 First, make it executable (yes!) with `chmod +x readme.scala.md`, then just run it: `./readme.scala.md`. 😀
 
