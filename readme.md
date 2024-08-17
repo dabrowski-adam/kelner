@@ -18,12 +18,12 @@ Kelner is a helper for generating DML query params from domain objects.
 trait Encodable[-A, B]:
     def encode(a: A): B
 
-type ContainsElems[A <: Tuple, B] = A match
-    case B *: tail  => ContainsElems[tail, B]
+type TupleConsistsOf[A <: Tuple, B] = A match
+    case B *: tail  => TupleConsistsOf[tail, B]
     case EmptyTuple => DummyImplicit
     case _          => Nothing
 
-type Of[A] = [X <: Tuple] =>> ContainsElems[X, A]
+type Of[A] = [X <: Tuple] =>> TupleConsistsOf[X, A]
 ```
 
 ```scala
@@ -36,20 +36,26 @@ type ColumnNames[T <: NonEmptyTuple] <: Tuple = T match
 trait Table[NAME <: String & Singleton, COLUMNS <: NonEmptyTuple : Of[Column]]:
     type Row = COLUMNS
 
+    given CanEqual[Tuple.Union[Row], Tuple.Union[Row]] = CanEqual.derived
+
     def primaryKey: List[Tuple.Union[ColumnNames[Row]]]
  
     def params[A](data: A)(using e: Encodable[A, Row]): List[Tuple.Union[Row]] =
         e.encode(data).toList
 
-    given CanEqual[Tuple.Union[Row], Tuple.Union[Row]] = CanEqual.derived
+    def diff[A](
+      before:            A,
+      after:             A,
+      includePrimaryKey: Boolean = false,
+    )(
+      using Encodable[A, Row],
+    ): List[Tuple.Union[Row]] =
+        val columnsBefore = params(before)
+        val columnsAfter  = params(after)
 
-    def diff[A](before: A, after: A, includePrimaryKey: Boolean = false)(using e: Encodable[A, Row]): List[Tuple.Union[Row]] =
-        val a = params(before)
-        val b = params(after)
-        
-        a.zip(b).collect:
-            case ((x1, x2), y) if includePrimaryKey && primaryKey.contains(x1) => y 
-            case (x, y)        if x != y                                       => y
+        columnsBefore.zip(columnsAfter).collect:
+            case ((name, _), y) if includePrimaryKey && primaryKey.contains(name) => y 
+            case (x,         y) if x != y                                         => y
 ```
 
 ## Usage
@@ -147,7 +153,11 @@ This readme was generated from `readme.scala.md` using `scala-cli --power readme
 object Main:
     def main(args: Array[String]): Unit =
         val classpath = System.getProperty("java.class.path")
-        val mdocArgs  = List("--classpath", classpath, "--in", "readme.scala.md", "--out", "readme.md")
+        val mdocArgs  = List(
+            "--classpath", classpath,
+            "--in", "readme.scala.md",
+            "--out", "readme.md",
+        )
         val settings  = mdoc.MainSettings().withArgs(args.toList ++ mdocArgs)
         val exitCode  = mdoc.Main.process(settings)
         
