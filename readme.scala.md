@@ -25,9 +25,7 @@ type TupleConsistsOf[A <: Tuple, B] = A match
     case _          => Nothing
 
 type Of[A] = [X <: Tuple] =>> TupleConsistsOf[X, A]
-```
 
-```scala mdoc
 type Column[VALUE] = (String & Singleton, VALUE)
 
 type ColumnNames[T <: NonEmptyTuple] <: Tuple = T match
