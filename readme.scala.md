@@ -154,19 +154,27 @@ First, make it executable (yes!) with `chmod +x readme.scala.md`, then just run 
 
 ```scala mdoc:invisible raw
 object Main:
+   
     def main(args: Array[String]): Unit =
-        val classpath = System.getProperty("java.class.path")
+        val classpath  = System.getProperty("java.class.path")
+        val inputFile  = "readme.scala.md"
+        val outputFile = inputFile.replace(".scala.md", ".md")
+        
         val mdocArgs  = List(
             "--classpath", classpath,
-            "--in", "readme.scala.md",
-            "--out", "readme.md",
+            "--in", inputFile,
+            "--out", outputFile,
         )
         val settings  = mdoc.MainSettings().withArgs(args.toList ++ mdocArgs)
         val exitCode  = mdoc.Main.process(settings)
         
-        if (exitCode != 0) sys.exit(exitCode) else trimShebang("readme.md")
-
-
+        if exitCode != 0 then
+            sys.exit(exitCode)
+        else
+            trimShebang(outputFile)
+            sys.exit(0)
+    
+    
     def trimShebang(filePath: String): Unit =
         val source = scala.io.Source.fromFile(filePath)
         val lines  = try source.getLines().toList finally source.close()
@@ -174,5 +182,5 @@ object Main:
         val linesWithoutShebang = lines.dropWhile(_.startsWith("#!"))
         
         val writer = new java.io.PrintWriter(filePath)
-        try linesWithoutShebang.foreach(writer.println(_)) finally writer.close()
+        try linesWithoutShebang.foreach(writer.println) finally writer.close()
 ```
