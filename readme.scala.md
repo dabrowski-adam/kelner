@@ -154,6 +154,8 @@ First, make it executable (yes!) with `chmod +x readme.scala.md`, then just run 
 
 ```scala mdoc:invisible raw
 import scala.util.{Try, Success, Failure, Using}
+import scala.io.Source
+import java.io.PrintWriter
 
 object Main:
    
@@ -182,11 +184,9 @@ object Main:
     
     
     def trimShebang(filePath: String): Try[Unit] =
-        for
-            lines       <- Using(scala.io.Source.fromFile(filePath)): source =>
-                                source.getLines().toList
-            trimmedLines = lines.dropWhile(_.startsWith("#!"))
-            writer      <- Using(new java.io.PrintWriter(filePath)): writer =>
-                               trimmedLines.foreach(writer.println)
-        yield ()
+        Using.Manager: use =>
+            val lines  = use(Source.fromFile(filePath)).getLines().toList
+            val writer = use(new PrintWriter(filePath))
+            
+            lines.dropWhile(_.startsWith("#!")).foreach(writer.println)
 ```
