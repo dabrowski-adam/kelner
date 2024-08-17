@@ -48,11 +48,11 @@ trait Table[NAME <: String & Singleton, COLUMNS <: NonEmptyTuple : Of[Column[?]]
         e.encode(data).toList
     
     def diff[A](
-      before:            A,
-      after:             A,
-      includePrimaryKey: Boolean = false,
+        before:            A,
+        after:             A,
+        includePrimaryKey: Boolean = false,
     )(
-      using Mapping[A, Row],
+        using Mapping[A, Row],
     ): List[Tuple.Union[Columns]] =
         val columnsBefore = params(before)
         val columnsAfter  = params(after)
