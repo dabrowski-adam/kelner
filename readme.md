@@ -15,9 +15,6 @@ Kelner is a helper for generating DML query params from domain objects.
 ## Implementation
 
 ```scala
-trait Encodable[-A, B <: (String & Singleton, NonEmptyTuple)]:
-    def encode(a: A): Tuple.Elem[B, 1]
-
 type TupleConsistsOf[A <: Tuple, B] = A match
     case B *: tail  => TupleConsistsOf[tail, B]
     case EmptyTuple => DummyImplicit
@@ -33,14 +30,17 @@ type ColumnNames[T <: NonEmptyTuple] <: Tuple = T match
     case (name, ?) *: tail => name *: ColumnNames[tail]
     case _                 => EmptyTuple
 
+trait Encodable[-A, B <: (String & Singleton, NonEmptyTuple)]:
+    def encode(a: A): Tuple.Elem[B, 1]
+
 trait Table[NAME <: String & Singleton, COLUMNS <: NonEmptyTuple : Of[Column[?]]]:
     type Columns = COLUMNS
-    type Row = (NAME, COLUMNS)
+    type Row     = (NAME, COLUMNS)
     
     given CanEqual[Tuple.Union[Columns], Tuple.Union[Columns]] = CanEqual.derived
     
     def primaryKey: List[Tuple.Union[ColumnNames[Columns]]]
-     
+    
     def params[A](data: A)(using e: Encodable[A, Row]): List[Tuple.Union[Columns]] =
         e.encode(data).toList
     
