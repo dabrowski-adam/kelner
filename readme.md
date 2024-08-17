@@ -14,6 +14,9 @@ Kelner is a helper for generating DML query params from domain objects.
 
 ## Implementation
 
+<details>
+<summary>Source code</summary>
+
 ```scala
 type TupleConsistsOf[A <: Tuple, B] = A match
     case B *: tail  => TupleConsistsOf[tail, B]
@@ -58,6 +61,8 @@ trait Table[NAME <: String & Singleton, COLUMNS <: NonEmptyTuple : Of[Column[?]]
             case ((name, _), y) if includePrimaryKey && primaryKey.contains(name) => y 
             case (x,         y) if x != y                                         => y
 ```
+
+</details>
 
 ## Usage
 
