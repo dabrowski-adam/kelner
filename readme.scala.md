@@ -80,7 +80,7 @@ given Mapping[User, Users.Row] = (user: User) => (
 )
 ```
 
-Use `Table` methods to prepare parameters for your queries:
+Use `Table`'s `params` and `diff` methods to prepare parameters for your queries:
 
 ```scala mdoc
 val user = User(id = 0, name = "Adam Dąbrowski")
