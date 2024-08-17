@@ -15,8 +15,8 @@ Kelner is a helper for generating DML query params from domain objects.
 ## Implementation
 
 ```scala mdoc
-trait Encodable[-A, B]:
-    def encode(a: A): B
+trait Encodable[-A, B <: (String & Singleton, NonEmptyTuple)]:
+    def encode(a: A): Tuple.Elem[B, 1]
 
 type TupleConsistsOf[A <: Tuple, B] = A match
     case B *: tail  => TupleConsistsOf[tail, B]
@@ -34,25 +34,26 @@ type ColumnNames[T <: NonEmptyTuple] <: Tuple = T match
     case _                 => EmptyTuple
 
 trait Table[NAME <: String & Singleton, COLUMNS <: NonEmptyTuple : Of[Column[?]]]:
-    type Row = COLUMNS
-
-    given CanEqual[Tuple.Union[Row], Tuple.Union[Row]] = CanEqual.derived
-
-    def primaryKey: List[Tuple.Union[ColumnNames[Row]]]
- 
-    def params[A](data: A)(using e: Encodable[A, Row]): List[Tuple.Union[Row]] =
+    type Columns = COLUMNS
+    type Row     = (NAME, COLUMNS)
+    
+    given CanEqual[Tuple.Union[Columns], Tuple.Union[Columns]] = CanEqual.derived
+    
+    def primaryKey: List[Tuple.Union[ColumnNames[Columns]]]
+    
+    def params[A](data: A)(using e: Encodable[A, Row]): List[Tuple.Union[Columns]] =
         e.encode(data).toList
-
+    
     def diff[A](
       before:            A,
       after:             A,
       includePrimaryKey: Boolean = false,
     )(
       using Encodable[A, Row],
-    ): List[Tuple.Union[Row]] =
+    ): List[Tuple.Union[Columns]] =
         val columnsBefore = params(before)
         val columnsAfter  = params(after)
-
+        
         columnsBefore.zip(columnsAfter).collect:
             case ((name, _), y) if includePrimaryKey && primaryKey.contains(name) => y 
             case (x,         y) if x != y                                         => y
@@ -108,6 +109,23 @@ given Encodable[Reaction, Reactions.Row] = (reaction: Reaction) => (
     "user_id" -> reaction.userId,
 )
 ```
+
+If you have two tables with the same columns, you can't accidentally swap them.
+
+```scala mdoc:fail ignore
+object Items extends Table["items", (("id", Int), ("name", String))]:
+    override def primaryKey = List("id")
+
+case class Item(id: Int, name: String)
+
+given Encodable[Item, Items.Row] = (item: Item) => (
+    "id"   -> item.id,
+    "name" -> item.name,
+)
+
+Items.params(user)
+```
+
 
 ## Meta
 
