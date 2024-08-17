@@ -153,6 +153,8 @@ First, make it executable (yes!) with `chmod +x readme.scala.md`, then just run 
 ```
 
 ```scala mdoc:invisible raw
+import scala.util.{Try, Success, Failure, Using}
+
 object Main:
    
     def main(args: Array[String]): Unit =
@@ -166,21 +168,25 @@ object Main:
             "--out", outputFile,
         )
         val settings  = mdoc.MainSettings().withArgs(args.toList ++ mdocArgs)
-        val exitCode  = mdoc.Main.process(settings)
         
-        if exitCode != 0 then
-            sys.exit(exitCode)
-        else
-            trimShebang(outputFile)
-            sys.exit(0)
+        val program =
+            for
+                _ <- mdoc.Main.process(settings) match
+                         case 0        => Success(())
+                         case exitCode => Failure(new RuntimeException(s"mdoc failed with exit code $exitCode"))
+                _ <- trimShebang(outputFile)
+            yield ()
+        
+        val exitCode = program.fold(_failure => 1, _success => 0)
+        sys.exit(exitCode)
     
     
-    def trimShebang(filePath: String): Unit =
-        val source = scala.io.Source.fromFile(filePath)
-        val lines  = try source.getLines().toList finally source.close()
-        
-        val linesWithoutShebang = lines.dropWhile(_.startsWith("#!"))
-        
-        val writer = new java.io.PrintWriter(filePath)
-        try linesWithoutShebang.foreach(writer.println) finally writer.close()
+    def trimShebang(filePath: String): Try[Unit] =
+        for
+            lines       <- Using(scala.io.Source.fromFile(filePath)): source =>
+                                source.getLines().toList
+            trimmedLines = lines.dropWhile(_.startsWith("#!"))
+            writer      <- Using(new java.io.PrintWriter(filePath)): writer =>
+                               trimmedLines.foreach(writer.println)
+        yield ()
 ```
