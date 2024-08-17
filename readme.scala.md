@@ -27,13 +27,13 @@ type Of[A] = [X <: Tuple] =>> TupleConsistsOf[X, A]
 ```
 
 ```scala mdoc
-type Column = (String & Singleton, Any)
+type Column[VALUE] = (String & Singleton, VALUE)
 
 type ColumnNames[T <: NonEmptyTuple] <: Tuple = T match
     case (name, ?) *: tail => name *: ColumnNames[tail]
     case _                 => EmptyTuple
 
-trait Table[NAME <: String & Singleton, COLUMNS <: NonEmptyTuple : Of[Column]]:
+trait Table[NAME <: String & Singleton, COLUMNS <: NonEmptyTuple : Of[Column[?]]]:
     type Row = COLUMNS
 
     given CanEqual[Tuple.Union[Row], Tuple.Union[Row]] = CanEqual.derived
